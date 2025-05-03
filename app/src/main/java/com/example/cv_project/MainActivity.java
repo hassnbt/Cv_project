@@ -2,6 +2,7 @@ package com.example.cv_project;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
@@ -15,25 +16,27 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.OutputStream;
-import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.BufferedReader;
-import java.io.IOException;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.function.BiConsumer;
 
 public class MainActivity extends AppCompatActivity {
 
     private ImageView selectedImage;
     private Button btnCamera, btnGallery, btnSubmit;
     private Uri photoURI;
-    private File currentImageFile; // Store selected or captured image
+    private File currentImageFile;
+    private File secondImageFile = null; // Optional second image (can be assigned as needed)
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
         btnGallery.setOnClickListener(v -> pickImageFromGallery());
         btnSubmit.setOnClickListener(v -> {
             if (currentImageFile != null) {
-                uploadImage(currentImageFile);
+                uploadImage(currentImageFile, "45.0", "y", secondImageFile, "5.0");
             } else {
                 Toast.makeText(this, "Please select or capture an image first", Toast.LENGTH_SHORT).show();
             }
@@ -59,21 +62,20 @@ public class MainActivity extends AppCompatActivity {
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            File photoFile = null;
+            File photoFile;
             try {
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 Toast.makeText(this, "Error creating file.", Toast.LENGTH_SHORT).show();
+                return;
             }
 
-            if (photoFile != null) {
-                currentImageFile = photoFile;
-                photoURI = FileProvider.getUriForFile(this,
-                        "com.example.cv_project.fileprovider",
-                        photoFile);
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                cameraLauncher.launch(takePictureIntent);
-            }
+            currentImageFile = photoFile;
+            photoURI = FileProvider.getUriForFile(this,
+                    "com.example.cv_project.fileprovider",
+                    photoFile);
+            takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+            cameraLauncher.launch(takePictureIntent);
         }
     }
 
@@ -87,7 +89,6 @@ public class MainActivity extends AppCompatActivity {
             result -> {
                 if (result.getResultCode() == RESULT_OK) {
                     selectedImage.setImageURI(photoURI);
-                    // currentImageFile is already set in dispatchTakePictureIntent
                 }
             });
 
@@ -110,23 +111,19 @@ public class MainActivity extends AppCompatActivity {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        return File.createTempFile(
-                imageFileName,
-                ".jpg",
-                storageDir
-        );
+        return File.createTempFile(imageFileName, ".jpg", storageDir);
     }
 
-    public void uploadImage(File imageFile) {
+    public void uploadImage(File imageFile, String bearing, String triangulate, File secondImageFile, String baseline) {
         Thread thread = new Thread(() -> {
             try {
-                String boundary = "" + Long.toString(System.currentTimeMillis()) + "";
+                String boundary = Long.toString(System.currentTimeMillis());
                 String LINE_FEED = "\r\n";
 
-                URL url = new URL("http://192.168.1.7:5000/api/all-in-one");  // Replace with your server IP
+                URL url = new URL("http://192.168.1.7:5000/process-image"); // Update as needed
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setUseCaches(false);
-                conn.setDoOutput(true); // indicates POST
+                conn.setDoOutput(true);
                 conn.setDoInput(true);
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Connection", "Keep-Alive");
@@ -135,9 +132,26 @@ public class MainActivity extends AppCompatActivity {
                 OutputStream outputStream = conn.getOutputStream();
                 DataOutputStream writer = new DataOutputStream(outputStream);
 
-                // Add file part
+                BiConsumer<String, String> writeFormField = (name, value) -> {
+                    try {
+                        writer.writeBytes("--" + boundary + LINE_FEED);
+                        writer.writeBytes("Content-Disposition: form-data; name=\"" + name + "\"" + LINE_FEED);
+                        writer.writeBytes("Content-Type: text/plain; charset=UTF-8" + LINE_FEED);
+                        writer.writeBytes(LINE_FEED);
+                        writer.writeBytes(value + LINE_FEED);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                };
+
+                // Add form fields
+                if (bearing != null) writeFormField.accept("bearing", bearing);
+                if (triangulate != null) writeFormField.accept("triangulate", triangulate);
+                if (baseline != null) writeFormField.accept("baseline", baseline);
+
+                // Add first image
                 writer.writeBytes("--" + boundary + LINE_FEED);
-                writer.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"" + imageFile.getName() + "\"" + LINE_FEED);
+                writer.writeBytes("Content-Disposition: form-data; name=\"image\"; filename=\"" + imageFile.getName() + "\"" + LINE_FEED);
                 writer.writeBytes("Content-Type: image/jpeg" + LINE_FEED);
                 writer.writeBytes(LINE_FEED);
 
@@ -149,22 +163,48 @@ public class MainActivity extends AppCompatActivity {
                 }
                 inputStream.close();
                 writer.writeBytes(LINE_FEED);
+
+                // Optional second image
+                if (secondImageFile != null && secondImageFile.exists()) {
+                    writer.writeBytes("--" + boundary + LINE_FEED);
+                    writer.writeBytes("Content-Disposition: form-data; name=\"second_image\"; filename=\"" + secondImageFile.getName() + "\"" + LINE_FEED);
+                    writer.writeBytes("Content-Type: image/jpeg" + LINE_FEED);
+                    writer.writeBytes(LINE_FEED);
+
+                    FileInputStream secondStream = new FileInputStream(secondImageFile);
+                    while ((bytesRead = secondStream.read(buffer)) != -1) {
+                        writer.write(buffer, 0, bytesRead);
+                    }
+                    secondStream.close();
+                    writer.writeBytes(LINE_FEED);
+                }
+
                 writer.writeBytes("--" + boundary + "--" + LINE_FEED);
                 writer.flush();
                 writer.close();
 
-                // Get the response
                 int responseCode = conn.getResponseCode();
                 InputStream responseStream = (responseCode == 200) ? conn.getInputStream() : conn.getErrorStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(responseStream));
-                String line;
                 StringBuilder response = new StringBuilder();
+                String line;
                 while ((line = reader.readLine()) != null) {
                     response.append(line);
                 }
                 reader.close();
 
-                Log.d("Response", "Server response: " + response.toString());
+                String finalResponse = response.toString();
+
+                runOnUiThread(() -> {
+                    Log.d("Response", "Server response: " + finalResponse);
+                    Toast.makeText(MainActivity.this, finalResponse, Toast.LENGTH_LONG).show();
+
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Server Response")
+                            .setMessage(finalResponse)
+                            .setPositiveButton("OK", null)
+                            .show();
+                });
 
             } catch (Exception e) {
                 e.printStackTrace();
