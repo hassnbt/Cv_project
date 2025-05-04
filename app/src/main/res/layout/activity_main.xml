@@ -1,50 +1,124 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/main_layout"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scrollView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="#F5F5F5"
+    android:padding="16dp">
 
-    <ImageView
-        android:id="@+id/selected_image"
-        android:layout_width="300dp"
-        android:layout_height="300dp"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="50dp"
-        android:scaleType="centerCrop"
-        android:background="@drawable/rounded_background"
-        android:contentDescription="Selected Image"/>
+    <LinearLayout
+        android:id="@+id/mainLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingTop="20dp">
 
-    <Button
-        android:id="@+id/btn_camera"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="📸 Capture Photo"
-        android:backgroundTint="#3F51B5"
-        android:textColor="#FFFFFF"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@id/selected_image"
-        android:layout_marginTop="30dp"/>
+        <!-- Image View for Selected Image -->
+        <ImageView
+            android:id="@+id/selected_image"
+            android:layout_width="300dp"
+            android:layout_height="300dp"
+            android:layout_gravity="center"
+            android:scaleType="centerCrop"
+            android:background="@drawable/rounded_background"
+            android:contentDescription="Selected Image"
+            android:layout_marginTop="20dp"/>
 
-    <Button
-        android:id="@+id/btn_gallery"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="🖼️ Upload from Gallery"
-        android:backgroundTint="#FF4081"
-        android:textColor="#FFFFFF"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@id/btn_camera"
-        android:layout_marginTop="20dp"/>
+        <!-- Camera Button -->
+        <Button
+            android:id="@+id/btn_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📸 Capture Photo"
+            android:layout_gravity="center"
+            android:layout_marginTop="20dp"
+            android:backgroundTint="#3F51B5"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp"/>
 
-    <Button
-        android:id="@+id/btn_submit"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Submit"
-        android:backgroundTint="#FF4091"
-        android:textColor="#FFFFFF"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@id/btn_gallery"
-        android:layout_marginTop="20dp"/>
+        <!-- Gallery Button -->
+        <Button
+            android:id="@+id/btn_gallery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🖼️ Upload from Gallery"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="#FF4081"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp"/>
 
-</RelativeLayout>
+        <!-- Submit Button -->
+        <Button
+            android:id="@+id/btn_submit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Submit"
+            android:layout_gravity="center"
+            android:layout_marginTop="10dp"
+            android:backgroundTint="#FF4091"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:layout_marginBottom="20dp"/>
+
+        <!-- Result Text Views -->
+        <TextView
+            android:id="@+id/textViewBuildingName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/building"
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:layout_marginTop="20dp"/>
+
+        <TextView
+            android:id="@+id/textViewConfidence"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/confidence"
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:id="@+id/textViewDistance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/distance"
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:layout_marginTop="10dp"/>
+
+        <!-- New Text Views for additional information -->
+        <TextView
+            android:id="@+id/textViewUserDistance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/user_distance_not_available"
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:layout_marginTop="10dp"/>
+
+        <TextView
+            android:id="@+id/textViewTriangulationDistance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/triangulation_distance_not_available"
+            android:textSize="16sp"
+            android:textColor="#333333"
+            android:layout_marginTop="10dp"/>
+
+        <!-- WebView to show the map -->
+        <WebView
+            android:id="@+id/webViewMap"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"/>
+    </LinearLayout>
+</ScrollView>

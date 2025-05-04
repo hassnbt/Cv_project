@@ -12,9 +12,16 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -37,7 +44,8 @@ public class MainActivity extends AppCompatActivity {
     private Uri photoURI;
     private File currentImageFile;
     private File secondImageFile = null; // Optional second image (can be assigned as needed)
-
+    TextView textViewBuildingName, textViewConfidence, textViewDistance,textViewUserDistance,textViewTriangulationDistance;
+    WebView webViewMap;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -47,7 +55,12 @@ public class MainActivity extends AppCompatActivity {
         btnCamera = findViewById(R.id.btn_camera);
         btnGallery = findViewById(R.id.btn_gallery);
         btnSubmit = findViewById(R.id.btn_submit);
-
+        textViewBuildingName = findViewById(R.id.textViewBuildingName);
+        textViewConfidence = findViewById(R.id.textViewConfidence);
+        textViewDistance = findViewById(R.id.textViewDistance);
+        webViewMap = findViewById(R.id.webViewMap);
+        textViewTriangulationDistance=findViewById(R.id.textViewTriangulationDistance);
+        textViewUserDistance=findViewById(R.id.textViewUserDistance);
         btnCamera.setOnClickListener(v -> dispatchTakePictureIntent());
         btnGallery.setOnClickListener(v -> pickImageFromGallery());
         btnSubmit.setOnClickListener(v -> {
@@ -58,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+
 
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -194,17 +209,86 @@ public class MainActivity extends AppCompatActivity {
                 reader.close();
 
                 String finalResponse = response.toString();
+                String validJson = finalResponse.replace("'", "\"");
+                JSONObject jsonResponse = new JSONObject(validJson);
+                String buildingName = jsonResponse.getString("building_name");
+                String confidence = jsonResponse.getString("confidence");
+                String distance = jsonResponse.getString("distance");
+                String userdistanve = jsonResponse.getString("user_location");
+                String triangulardistance = jsonResponse.getString("triangulation_distance");
 
+                String mapUrl = jsonResponse.getString("map_url");
+
+                String finalDistance = distance;
+                String finalMapUrl = mapUrl;
+                String finalConfidence = confidence;
+                String finalUserdistanve = userdistanve;
+                String finalTriangulardistance = triangulardistance;
                 runOnUiThread(() -> {
+                    // Log the final server response
                     Log.d("Response", "Server response: " + finalResponse);
-                    Toast.makeText(MainActivity.this, finalResponse, Toast.LENGTH_LONG).show();
+//                    Toast.makeText(MainActivity.this, finalResponse, Toast.LENGTH_LONG).show();
+//
+//                    // Show an AlertDialog with the building name
+//                    new AlertDialog.Builder(MainActivity.this)
+//                            .setTitle("Server Response")
+//                            .setMessage(buildingName)
+//                            .setPositiveButton("OK", null)
+//                            .show();
 
-                    new AlertDialog.Builder(MainActivity.this)
-                            .setTitle("Server Response")
-                            .setMessage(finalResponse)
-                            .setPositiveButton("OK", null)
-                            .show();
+                    // Check if the TextViews are properly initialized
+                    if (textViewBuildingName != null && textViewConfidence != null && textViewDistance != null && webViewMap != null) {
+                        // Set values in the TextViews
+                        textViewBuildingName.setText("Building: " + buildingName);
+                        textViewConfidence.setText("Confidence: " + finalConfidence);  // Use actual confidence if available
+                        textViewDistance.setText("Distance: " + finalDistance + " meters");
+                        textViewUserDistance.setText("User Distance: " + finalUserdistanve);
+                        textViewTriangulationDistance.setText("Triangulation Distance: " + finalTriangulardistance);
+
+                        // Log the values being set
+                        Log.d("Response", "Building Name: " + buildingName);
+                        Log.d("Response", "Confidence: 10");  // Use actual confidence if available
+                        Log.d("Response", "Distance: " + finalDistance + " meters");
+
+                        // Load the map in WebView
+                        WebSettings webSettings = webViewMap.getSettings();
+                        webSettings.setJavaScriptEnabled(true);
+                        webSettings.setDomStorageEnabled(true);  // Optional
+                        webViewMap.setWebViewClient(new WebViewClient());  // So it doesn't open external browser
+                        webViewMap.loadUrl(finalMapUrl);  // Make sure mapUrl is valid
+
+                        // Log the map URL
+                        Log.d("Response", "Map URL: " + finalMapUrl);
+                    } else {
+                        Log.e("Error", "TextViews or WebView are not properly initialized");
+                    }
                 });
+
+// Server response processing
+                try {
+                     confidence = jsonResponse.getString("confidence");
+                     distance = jsonResponse.getString("distance");
+                     mapUrl = jsonResponse.getString("map_url");
+                     userdistanve = jsonResponse.getString("user_location");
+                     triangulardistance = jsonResponse.getString("triangulation_distance");
+                    // Log the server response
+                    Log.d("Response", "Confidence: " + confidence);
+                    Log.d("Response", "Distance: " + distance);
+                    Log.d("Response", "Map URL: " + mapUrl);
+                    Log.d("Response", "user distyance : " + userdistanve);
+                    Log.d("Response", "triangular Distance: " + triangulardistance);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    Log.e("Error", "Failed to parse JSON response: " + e.getMessage());
+                }
+
+//                } catch (JSONException e) {
+//                    e.printStackTrace();
+//                    Toast.makeText(this, "Error parsing response", Toast.LENGTH_SHORT).show();
+//                }
+
+
 
             } catch (Exception e) {
                 e.printStackTrace();

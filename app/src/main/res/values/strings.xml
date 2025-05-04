@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Cv_project</string>
+    <string name="distance">Distance:</string>
+    <string name="confidence">Confidence:</string>
+    <string name="building">Building:</string>
+    <string name="userlocation">userlocation</string>
+    <string name="triangulation_distance_not_available">Triangulation Distance: Not Available</string>
+    <string name="user_distance_not_available">User Distance: Not Available</string>
 </resources>
